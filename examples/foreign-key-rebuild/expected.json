@@ -1,0 +1,5 @@
+{
+  "case.json": {"exit_code": 1, "status": "unexpected_loss", "table": "child", "down": {"schema_restored": true, "added_count": 0, "removed_count": 1, "changed_count": 0, "column_changed_counts": {"id": 0, "parent_id": 0}}},
+  "preserved.json": {"exit_code": 0, "status": "passed"},
+  "invalid-reference.json": {"exit_code": 3, "status": "incomplete"}
+}

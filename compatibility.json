@@ -1,0 +1,26 @@
+{
+  "verified_date": "2026-10-07",
+  "python": "3.12.14",
+  "sqlite": "3.53.1",
+  "platform": "Windows",
+  "runtime_dependencies": [],
+  "declared_minimum": {
+    "python": "3.12",
+    "sqlite": "3.35"
+  },
+  "other_platforms": "not run",
+  "checks": {
+    "unittest": "python -m unittest discover -s tests -v",
+    "compile": "python -m compileall -q migreplay",
+    "demo_exit": 1,
+    "preserved_exit": 0,
+    "wheel_installed": true,
+    "installed_console_and_module": true,
+    "offline_html_viewports": [
+      390,
+      1440
+    ],
+    "keyboard_tab_enter": true
+  },
+  "scope": "Synthetic fixtures; local Windows host. Minimum versions and other platforms have not been separately executed."
+}

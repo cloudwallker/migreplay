@@ -1,0 +1,1 @@
+{"format_version":1,"synthetic_seed":true,"schema":"schema.sql","seed":"seed.sql","migrations":[{"id":"001","up":"001.up.sql","down":"001.down.sql"}],"keys":{"notes":["id"],"notes_backup":["id"]},"assertions":[{"id":"body-restored","at":["baseline","down:001"],"sql":"SELECT COUNT(*)=10 FROM notes WHERE body IS NOT NULL","expect":1}]}

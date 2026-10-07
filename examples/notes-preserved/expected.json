@@ -1,0 +1,3 @@
+{
+  "case.json": {"exit_code": 0, "status": "passed", "table": "notes", "down": {"schema_restored": true, "added_count": 0, "removed_count": 0, "changed_count": 0, "column_changed_counts": {"id": 0, "body": 0}}}
+}

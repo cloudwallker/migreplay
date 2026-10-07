@@ -1,0 +1,1 @@
+{"format_version":1,"synthetic_seed":true,"schema":"schema.sql","seed":"seed.sql","migrations":[{"id":"001","up":"001.up.sql","down":"001.down.sql"}],"allow_changes":[{"id":"null-fill","migration":"001","phase":"down","table":"items","kind":"value_changed","columns":["value"],"reason":"The synthetic NULL is intentionally replaced by the declared default."}]}

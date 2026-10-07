@@ -1,0 +1,1 @@
+CREATE TABLE items(id INTEGER PRIMARY KEY,value TEXT DEFAULT 'unknown');

@@ -1,0 +1,32 @@
+{
+  "image": "docs/demo.png",
+  "source": "Real offline report from synthetic examples/notes-loss/case.json",
+  "command": "python -m migreplay demo --out-dir reports/demo-verification",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "sha256": "36c00c915ed55819edb4646113095fd3aa1b572930e9bfc59909cf0d784a1b3b",
+  "bytes": 60111,
+  "png_chunks": [
+    "IHDR",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IDAT",
+    "IEND"
+  ],
+  "edited": false
+}

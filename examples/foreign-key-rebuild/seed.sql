@@ -1,0 +1,2 @@
+INSERT INTO parent VALUES(1),(2);
+INSERT INTO child VALUES(10,1),(20,2);

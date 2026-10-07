@@ -1,0 +1,4 @@
+{
+  "case.json": {"exit_code": 1, "status": "unexpected_loss", "table": "items", "down": {"schema_restored": true, "added_count": 0, "removed_count": 0, "changed_count": 1, "column_changed_counts": {"id": 0, "value": 1}}},
+  "allowed.json": {"exit_code": 0, "status": "expected_irreversible"}
+}
