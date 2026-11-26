@@ -6,7 +6,7 @@ Rehearse SQLite up/down migrations on synthetic data and locate data loss after 
 
 [English](README.md) · [示例说明](examples/README.md) · [MIT 许可证](LICENSE)
 
-MigReplay 在新建临时 SQLite 数据库中执行 schema、合成 seed 和成对迁移 SQL，对比 up → down → up 后的已提交状态，检查约束及声明的不变量，生成含语句位置的 JSON 与离线 HTML 报告。
+MigReplay 在新建临时 SQLite 数据库中执行 schema、合成 seed 和成对迁移 SQL，对比 up → down → up 后的已提交状态，检查约束及声明的不变量，并在 JSON 与离线 HTML 报告中定位首次观察到行增减的 SQL 语句。
 
 ![真实 notes-loss 报告：结构恢复，10 条 body 变为 NULL](docs/demo.png)
 
@@ -79,6 +79,8 @@ SQL 文件路径相对于清单目录，语句以分号结束，seed 必须明�
 `schema_version=1` 包含运行版本、输入哈希、限额、阶段、比较、断言、发现、规则使用、诊断与摘要。未知值用 `null`，已知零用 `0`。展开阶段可见 provisional/committed/rolled_back 快照、`final_snapshot_id`、检查及断言。比较只使用最终已提交快照：down 对照原迁移前状态，reup 对照首次 up 状态。首次观察变化与首次确认恢复失败分别定位。
 
 可靠主键或声明键支持增删键与变更行计数；无可靠键时以完整行多重集合保留重复次数，逐行归因显示未知。带类型的规范编码区分 NULL、文本、整数、浮点及 blob。结构、键、全行、列和自增序列使用 SHA-256 摘要，是否相等则依据准确规范值。报告展示摘要、计数、名称与相对来源位置；名称及规则 reason 会公开显示，应适合分享。原始 SQL、行/键值、断言值和输入绝对路径保留在内部。
+
+在报告的 **Findings and diagnostics** 中查看 `rows_added`、`rows_removed` 或 `keys_changed` 的 `source`，可找到文件、语句序号和行号范围。它指向首个能观察到至少一个最终新增或移除键的可比快照。`keys_changed` 要求同一快照同时出现键的新增和移除。无可靠键时按每种完整行的出现次数判断增减。中途表不存在或行身份不可比较的快照不提供位置。
 
 ## 执行范围与限额
 

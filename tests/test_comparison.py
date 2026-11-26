@@ -76,6 +76,40 @@ class ComparisonTests(unittest.TestCase):
         self.assertIsNone(report.comparisons[0]['first_failed_restoration'])
         self.assertEqual(report.summary['exit_code'], 3)
 
+    def test_row_findings_locate_distinct_key_changes(self):
+        value = fixture(seed="INSERT INTO t VALUES(1,'one'),(2,'two');",
+            up="UPDATE t SET body='temporary' WHERE id=1; UPDATE t SET body='one' WHERE id=1; "
+               "INSERT INTO t VALUES(4,'transient'); DELETE FROM t WHERE id=4; "
+               "DELETE FROM t WHERE id=2; INSERT OR IGNORE INTO t VALUES(3,'three');",
+            down='SELECT 1;')
+        _, _, report = self.execute(value)
+        self.assertEqual(report.comparisons[0]['first_observed_snapshot_id'], 'up:001/statement/5')
+        locations = {f['kind']: f['source']['statement'] for f in report._public_model['findings']
+                     if f['stage_id'] == 'down:001'}
+        self.assertEqual(locations, {'rows_removed': 5, 'rows_added': 6, 'keys_changed': 6})
+
+    def test_multiset_findings_locate_changes_in_duplicate_counts(self):
+        value = fixture(schema='CREATE TABLE t(body);', seed="INSERT INTO t VALUES('x'),('x');",
+            up="INSERT INTO t VALUES('transient'); DELETE FROM t WHERE body='transient'; "
+               "DELETE FROM t WHERE rowid=(SELECT min(rowid) FROM t WHERE body='x'); "
+               "INSERT INTO t VALUES('y');", down='SELECT 1;')
+        _, _, report = self.execute(value)
+        self.assertEqual(report.comparisons[0]['first_observed_snapshot_id'], 'up:001/statement/3')
+        locations = {f['kind']: f['source']['statement'] for f in report._public_model['findings']
+                     if f['stage_id'] == 'down:001'}
+        self.assertEqual(locations, {'rows_removed': 3, 'rows_added': 4})
+
+    def test_row_locations_skip_missing_table_and_unreliable_key(self):
+        value = fixture(schema='CREATE TABLE "t"(id,body);', keys={'t': ('id',)},
+            seed="INSERT INTO t VALUES(1,'one'),(2,'two');",
+            up='ALTER TABLE t RENAME TO holding; ALTER TABLE holding RENAME TO t; '
+               'UPDATE t SET id=NULL WHERE id=2; UPDATE t SET id=2 WHERE id IS NULL; '
+               'DELETE FROM t WHERE id=2;', down='SELECT 1;')
+        _, _, report = self.execute(value)
+        removed = next(f for f in report.findings if f.kind == 'rows_removed' and f.stage_id == 'down:001')
+        self.assertEqual(removed.source.statement, 5)
+        self.assertEqual(report.comparisons[0]['first_observed_snapshot_id'], 'up:001/statement/5')
+
     def test_allowance_exact_scope(self):
         allowance = Allowance('body', '001', 'down', 't', 'value_changed', ('body',), 'Synthetic body reset is intentional.')
         value = fixture(allowances=(allowance,))

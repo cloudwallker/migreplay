@@ -8,6 +8,44 @@ from .policy import Budget
 from . import status
 
 
+_ROW_FINDINGS = {'rows_added', 'rows_removed', 'keys_changed'}
+
+
+def _row_targets(before, after):
+    """Keep just the key or multiplicity differences present at the final comparison."""
+    if before.identity_mode == 'key':
+        original, final = before._key_index.keys(), after._key_index.keys()
+        return final - original, original - final
+    original, final = Counter(before._rows), Counter(after._rows)
+    return ({row: original[row] for row in final - original},
+            {row: original[row] for row in original - final})
+
+
+def _observed_row_findings(before, observed, targets):
+    if observed is None or observed.identity_mode != before.identity_mode:
+        return set()
+    added, removed = targets
+    if before.identity_mode == 'key':
+        if observed.key_columns != before.key_columns:
+            return set()
+        gained = not added.isdisjoint(observed._key_index)
+        lost = not removed.issubset(observed._key_index)
+    else:
+        if _columns(before) != _columns(observed):
+            return set()
+        current = Counter(observed._rows)
+        gained = any(current[row] > n for row, n in added.items())
+        lost = any(current[row] < n for row, n in removed.items())
+    kinds = set()
+    if gained:
+        kinds.add('rows_added')
+    if lost:
+        kinds.add('rows_removed')
+    if gained and lost and before.identity_mode == 'key':
+        kinds.add('keys_changed')
+    return kinds
+
+
 def _final(stage):
     if stage.status != 'committed' or stage.final_snapshot_id is None:
         return None
@@ -175,11 +213,14 @@ def analyze_trace(case, trace, limits):
                     incomparable_reasons=['missing_committed_snapshot']))
             continue
         start = len(findings)
+        row_targets = {}
         for name in names:
             budget.check_deadline()
             a, b = before.tables.get(name), after.tables.get(name)
             result, changes = _table_differences(name, a, b, budget)
             comparison['table_results'].append(result)
+            if any(change in _ROW_FINDINGS for change, _, _ in changes):
+                row_targets[name] = _row_targets(a, b)
             for change, columns, count in changes:
                 add(change, after_id, name, columns, count, evidence=status.evidence(comparison_id=ident,
                     before_digest=a.row_digest if a else None, after_digest=b.row_digest if b else None,
@@ -192,15 +233,39 @@ def analyze_trace(case, trace, limits):
             # provide conclusions but cannot invent a SQL location.
             begin = next(i for i, s in enumerate(trace.stages) if s.id == before_id)
             end = next(i for i, s in enumerate(trace.stages) if s.id == after_id)
+            pending_rows = {i for i in range(start, len(findings)) if findings[i].kind in _ROW_FINDINGS}
             for stage in trace.stages[begin + 1:end + 1]:
                 for snapshot in stage.snapshots:
                     budget.check_deadline()
-                    if snapshot.source is not None and any(_different_for(f, before, snapshot) for f in differences):
-                        if comparison['first_observed_change'] is None:
+                    locate_first = comparison['first_observed_change'] is None
+                    locate_failure = stage.id == after_id and snapshot.committed and comparison['first_failed_restoration'] is None
+                    if snapshot.source is None or not (pending_rows or locate_first or locate_failure):
+                        continue
+                    observed_rows = {}
+                    for i in range(start, len(findings)):
+                        if i not in pending_rows and not (locate_first or locate_failure):
+                            continue
+                        budget.check_deadline()
+                        f = findings[i]
+                        if f.kind in _ROW_FINDINGS:
+                            if f.table not in observed_rows:
+                                observed_rows[f.table] = _observed_row_findings(
+                                    before.tables[f.table], snapshot.tables.get(f.table), row_targets[f.table])
+                            matches = f.kind in observed_rows[f.table]
+                        else:
+                            matches = _different_for(f, before, snapshot)
+                        if not matches:
+                            continue
+                        if i in pending_rows:
+                            findings[i] = replace(f, source=snapshot.source)
+                            pending_rows.remove(i)
+                        if locate_first:
                             comparison['first_observed_change'] = status.source_view(snapshot.source)
                             comparison['first_observed_snapshot_id'] = snapshot.id
-                        if stage.id == after_id and snapshot.committed and comparison['first_failed_restoration'] is None:
+                            locate_first = False
+                        if locate_failure:
                             comparison['first_failed_restoration'] = status.source_view(snapshot.source)
+                            locate_failure = False
             for i in range(start, len(findings)):
                 f = findings[i]
                 for allowance, usage in zip(case.allowances, usages):
