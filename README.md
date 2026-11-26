@@ -6,7 +6,7 @@ Rehearse SQLite up/down migrations on synthetic data and locate data loss after 
 
 [中文说明](README_ZH.md) · [Example cases](examples/README.md) · [MIT license](LICENSE)
 
-MigReplay executes your schema, synthetic seed, and paired migration SQL in a fresh temporary SQLite database. It compares committed states after up → down → up, checks constraints and declared invariants, and produces JSON plus an offline HTML report with statement locations.
+MigReplay executes your schema, synthetic seed, and paired migration SQL in a fresh temporary SQLite database. It compares committed states after up → down → up, checks constraints and declared invariants, and reports which SQL statements first showed each row addition or removal in JSON and offline HTML.
 
 ![Real notes-loss report: schema restored, 10 body values changed to NULL](docs/demo.png)
 
@@ -79,6 +79,8 @@ Priority is 3 > 2 > 1 > 0. CLI, JSON and HTML share one summary. Invalid inputs 
 `schema_version=1` includes runtime and input hashes, limits, stages, comparisons, assertions, findings, allowance usage, diagnostics and summary. It preserves unknown `null` separately from known `0`. Expand stages for provisional/committed/rolled-back snapshots, `final_snapshot_id`, checks and assertion instances. Comparisons use committed final snapshots: each down result against its original predecessor, each reup result against its first up result. First observed changes and first failed restoration locations have separate fields.
 
 Reliable primary or declared keys support added/removed-key and changed-row counts. Without reliable keys, full rows form a multiset that preserves duplicates; per-row change attribution is unknown. Typed canonical values distinguish NULL, text, integer, real and blob. SHA-256 summaries cover schema, keys, full rows, columns and AUTOINCREMENT sequence state; exact canonical values drive equality. Reports export summaries, counts, names and source locations. Keep names and allowance reasons suitable for sharing: they appear in reports, while raw SQL, row/key values, assertion values and absolute input paths stay private.
+
+In **Findings and diagnostics**, the `source` of a `rows_added`, `rows_removed`, or `keys_changed` finding gives the file, statement number and line range. It locates the first comparable statement snapshot showing at least one of the final added or removed keys. For `keys_changed`, both directions must be visible together. With no reliable key, additions and removals track changes in the number of copies of each distinct full row. A missing table or incompatible row identity provides no location.
 
 ## Execution scope and limits
 
